@@ -1,0 +1,19 @@
+# Goal
+
+Compile a single cuda file and execute it, return the results.
+
+# Implementation
+
+1. Query gpu instances, check if it's up
+2. if not up, power_on
+3. Create a ssh connection
+4. Update target file
+5. Compile it.
+6. Read the output.
+
+# TODO
+1. Support passing arguments?
+2. Support multiple files? like cmake?
+3. Better algorithms for server boot/shutdown?
+4. Support Chosing machine?
+5. Support logining completely via command line?
