@@ -9,7 +9,15 @@ __global__ void vectorAdd(const float *A, const float *B, float *C) {
   }
 }
 
-int main() {
+int main(int argc, char **argv) {
+  if (argc > 1) {
+    printf("Received arguments: ");
+  }
+  for (int i = 1; i < argc; ++i) {
+    printf("%s ", argv[i]);
+  }
+  printf("\n");
+
   float A[N], B[N], C[N];
 
   for (int i = 0; i < N; i++) {
