@@ -6,12 +6,23 @@ import paramiko
 import re
 from scp import SCPClient
 from dotenv import load_dotenv
+import hashlib
+
+def _sha1_string(input_string: str) -> str:
+    sha1_hash = hashlib.sha1()
+    sha1_hash.update(input_string.encode('utf-8'))
+    return sha1_hash.hexdigest()
 
 load_dotenv()
-AUTH = os.getenv("AUTH")
-if not AUTH:
-    raise ValueError("Cannot find AUTH token in .env")
+PHONE = os.getenv("PHONE")
+if not PHONE:
+    raise ValueError("Cannot find PHONE in .env")
 
+PASSWORD = os.getenv("PASSWORD")
+if not PASSWORD:
+    raise ValueError("Cannot find PASSWORD in .env")
+
+PASSWORD = _sha1_string(PASSWORD)
 
 def _get_port_from_cmd(cmd):
     match = re.search(r"-p (\d+)", cmd)
@@ -27,6 +38,7 @@ class Compiler:
         # FIXME: if filepath is not just a file, this is wrong!
         self._remote_path = "/root/autodl-tmp/" + self._filepath
 
+        self._auth = self._get_auth()
         self._gpu = self._get_gpu_info()
         self._may_start_gpu(self._gpu)
         host = self._gpu["proxy_host"]
@@ -41,12 +53,70 @@ class Compiler:
         client.connect(hostname, port, username, password)
         return client
 
+    def _get_auth(self):
+        headers = {
+            'accept': '*/*',
+            'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+            'appversion': 'v5.49.0',
+            'authorization': 'null',
+            'content-type': 'application/json;charset=UTF-8',
+            'dnt': '1',
+            'origin': 'https://www.autodl.com',
+            'priority': 'u=1, i',
+            'referer': 'https://www.autodl.com/login',
+            'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        }
+
+        json_data = {
+            'phone': f'{PHONE}',
+            'password': f'{PASSWORD}',
+            'v_code': '',
+            'phone_area': '+86',
+            'picture_id': None,
+        }
+        response = requests.post('https://www.autodl.com/api/v1/new_login', headers=headers, json=json_data)
+        if response.status_code != 200:
+            raise ValueError("Cannot login")
+        ticket = response.json()["data"]["ticket"]
+
+        headers = {
+            'accept': '*/*',
+            'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+            'appversion': 'v5.49.0',
+            'authorization': 'null',
+            'content-type': 'application/json;charset=UTF-8',
+            'dnt': '1',
+            'origin': 'https://www.autodl.com',
+            'priority': 'u=1, i',
+            'referer': 'https://www.autodl.com/login',
+            'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        }
+        json_data = {
+            'ticket': f'{ticket}',
+        }
+        response = requests.post('https://www.autodl.com/api/v1/passport', headers=headers, json=json_data)
+        if response.status_code != 200:
+            raise ValueError("Cannot get auth token")
+        return response.json()["data"]["token"]
+
     def _list_all_gpus(self):
         headers = {
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
             "appversion": "v5.49.0",
-            "authorization": f"{AUTH}",
+            "authorization": f"{self._auth}",
             "content-type": "application/json;charset=UTF-8",
             "dnt": "1",
             "origin": "https://www.autodl.com",
@@ -89,7 +159,7 @@ class Compiler:
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
             "appversion": "v5.49.0",
-            "authorization": f"{AUTH}",
+            "authorization": f"{self._auth}",
             "content-type": "application/json;charset=UTF-8",
             "dnt": "1",
             "origin": "https://www.autodl.com",
@@ -120,7 +190,7 @@ class Compiler:
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
             "appversion": "v5.49.0",
-            "authorization": f"{AUTH}",
+            "authorization": f"{self._auth}",
             "content-type": "application/json;charset=UTF-8",
             "dnt": "1",
             "origin": "https://www.autodl.com",
