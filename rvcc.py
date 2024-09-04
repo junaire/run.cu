@@ -35,10 +35,7 @@ def _get_port_from_cmd(cmd):
 
 
 class Compiler:
-    def __init__(self, filepath):
-        self._filepath = filepath
-        # FIXME: if filepath is not just a file, this is wrong!
-        self._remote_path = "/root/autodl-tmp/" + self._filepath
+    def __init__(self):
 
         self._auth = self._get_auth()
         self._gpu = self._get_gpu_info()
@@ -248,23 +245,32 @@ class Compiler:
                     return
             time.sleep(2)
 
-    def _upload_file(self):
+    def _upload_file(self, filepath):
+        remote_path = "/root/autodl-tmp/" + filepath
         with SCPClient(self._client.get_transport()) as scp:
-            scp.put(self._filepath, self._remote_path)
+            scp.put(filepath, remote_path)
 
-    def _create_cmd(self):
-        return f"/usr/local/cuda/bin/nvcc {self._remote_path} && ./a.out"
+    def _create_cmd(self, filepath, args):
+        remote_path = "/root/autodl-tmp/" + filepath
+        cmd =f"/usr/local/cuda/bin/nvcc {remote_path} && ./a.out"
+        if not args:
+            return cmd
+        for arg in args:
+            cmd += f" {arg}"
+        return cmd
 
-    def _compile(self):
-        _, stdout, stderr = self._client.exec_command(self._create_cmd())
+    def _compile(self, filepath, args):
+        cmd = self._create_cmd(filepath, args)
+        print(colored(cmd, "green"))
+        _, stdout, stderr = self._client.exec_command(cmd)
         output = stdout.read().decode()
         print(output)
         if error := stderr.read().decode():
             print(error)
 
-    def run(self):
-        self._upload_file()
-        self._compile()
+    def run(self, filepath, args):
+        self._upload_file(filepath)
+        self._compile(filepath, args)
 
     def __enter__(self):
         return self
@@ -273,7 +279,20 @@ class Compiler:
         self._may_stop_gpu(self._gpu)
 
 
+def get_parser():
+    arg_parser = argparse.ArgumentParser(prog="rcc", description="Remote Cuda Runner", formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
+    arg_parser.add_argument("path", type=str, help="Path to the cuda file you want to compile and run")
+    arg_parser.add_argument("--args", nargs='*', help="Arguments for running the compiled executable")
+    return arg_parser.parse_args()
+
 if __name__ == "__main__":
-    file = sys.argv[1]
-    with Compiler(file) as compiler:
-        compiler.run()
+
+    args =get_parser()
+    path = args.path
+    if not path.endswith(".cu"):
+        raise ValueError("Not a CUDA file")
+    if not os.path.isfile(path):
+        raise NotImplementedError("Currently only support compiling and running a single CUDA file")
+
+    with Compiler() as compiler:
+        compiler.run(path, args.args)
