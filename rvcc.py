@@ -1,12 +1,14 @@
 import os
 import sys
 import requests
+import argparse
 import time
 import paramiko
 import re
 from scp import SCPClient
 from dotenv import load_dotenv
 import hashlib
+from termcolor import colored
 
 def _sha1_string(input_string: str) -> str:
     sha1_hash = hashlib.sha1()
@@ -54,6 +56,7 @@ class Compiler:
         return client
 
     def _get_auth(self):
+        print(colored("Try to login into cloud...", "green"))
         headers = {
             'accept': '*/*',
             'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
@@ -222,9 +225,11 @@ class Compiler:
                 if item["uuid"] != gpu["uuid"]:
                     continue
                 if item["status"] == "shutdown":
+                    print(colored("Start a GPU instance...", "green"))
                     self._power_on(item["uuid"])
                     # print("GPU is up")
                 else:
+                    print(colored("GPU instance already up...", "green"))
                     return
             time.sleep(2)
 
@@ -234,9 +239,12 @@ class Compiler:
                 if item["uuid"] != gpu["uuid"]:
                     continue
                 if item["status"] != "shutdown":
+                    print(colored("Shutdown GPU instance...", "green"))
                     self._power_off(item["uuid"])
+                    return
                     # print("GPU is stopped")
                 else:
+                    print(colored("GPU instance already shutdown...", "green"))
                     return
             time.sleep(2)
 
