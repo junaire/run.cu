@@ -45,6 +45,11 @@ def get_parser():
     arg_parser.add_argument(
         "--args", nargs="*", help="Arguments for running the compiled executable"
     )
+    arg_parser.add_argument(
+        "flags",
+        nargs=argparse.REMAINDER,  # Capture all remaining arguments as compile flags
+        help="Compile flags"
+    )
     return arg_parser.parse_args()
 
 
@@ -83,7 +88,7 @@ def main():
         t = time.time()
         autodl_provider.start_gpu(gpu)
         compiler = Compiler(gpu.host, gpu.port, gpu.passwd)
-        compiler.run(path, args.args)
+        compiler.run(path, args.flags, args.args)
     finally:
         autodl_provider.stop_gpu(gpu)
     elapsed = time.time() - t
