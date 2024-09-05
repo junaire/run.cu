@@ -48,7 +48,7 @@ def get_parser():
     arg_parser.add_argument(
         "flags",
         nargs=argparse.REMAINDER,  # Capture all remaining arguments as compile flags
-        help="Compile flags"
+        help="Additional flags for compilation",
     )
     return arg_parser.parse_args()
 
