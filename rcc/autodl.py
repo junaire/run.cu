@@ -1,49 +1,14 @@
-from abc import abstractmethod
-import os
 from typing import List
-import toml
-import requests
-import argparse
-import time
-import paramiko
-import tempfile
 import re
-from scp import SCPClient, Tuple
-import hashlib
+import requests
+from typing import Tuple
+import requests
+
+import time
+
+from rcc.gpu import GPU
 from termcolor import colored
-from dataclasses import dataclass
-
-
-def _sha1_string(input_string: str) -> str:
-    sha1_hash = hashlib.sha1()
-    sha1_hash.update(input_string.encode("utf-8"))
-    return sha1_hash.hexdigest()
-
-
-def read_config():
-    home_dir = os.getenv("HOME")
-    if not home_dir:
-        raise ValueError("Cannot find home directory")
-    name = f"{home_dir}/.rcc.toml"
-    try:
-        config = toml.load(name)
-        phone = config["credentials"]["autodl"]["username"]
-        password = config["credentials"]["autodl"]["password"]
-        return phone, _sha1_string(password)
-    except Exception as e:
-        print(colored(f"Cannot read config: {e}", "red"))
-        exit(1)
-
-
-@dataclass
-class GPU:
-    uuid: str
-    host: str
-    passwd: str
-    port: int
-    name: str
-    memory: int
-    status: str
+from rcc.provider import Provider
 
 
 def _get_port_from_cmd(cmd):
@@ -90,24 +55,6 @@ def _create_gpu_from_json(j, auth) -> GPU:
     port = _get_port_from_cmd(cmd)
     name, memory = _get_gpu_info(uuid, auth)
     return GPU(uuid, host, password, port, name, memory, status)
-
-
-class Provider:
-    @abstractmethod
-    def login(self, username: str, password: str):
-        pass
-
-    @abstractmethod
-    def list_gpus(self) -> List[GPU]:
-        pass
-
-    @abstractmethod
-    def start_gpu(self, gpu: GPU) -> bool:
-        pass
-
-    @abstractmethod
-    def stop_gpu(self, gpu: GPU) -> bool:
-        pass
 
 
 class AutoDlProvider(Provider):
@@ -177,7 +124,6 @@ class AutoDlProvider(Provider):
         self._auth = response.json()["data"]["token"]
         return True
 
-    @abstractmethod
     def list_gpus(self) -> List[GPU]:
         headers = {
             "accept": "*/*",
@@ -236,7 +182,6 @@ class AutoDlProvider(Provider):
                     return True
             time.sleep(2)
 
-    @abstractmethod
     def stop_gpu(self, gpu: GPU) -> bool:
         while True:
             for item in self.list_gpus():
@@ -281,96 +226,3 @@ class AutoDlProvider(Provider):
         if response.status_code != 200:
             raise ValueError("Cannot switch power")
         return response.json()["code"] == "Success"
-
-
-class Compiler:
-    def __init__(self, hostname, port, password):
-        self._client = self._create_ssh_client(hostname, port, password=password)
-        self._remote_path = "/root/autodl-tmp/run.cu"
-
-    def run(self, filepath, args):
-        self._upload_file(filepath)
-        self._compile(args)
-
-    def _create_ssh_client(self, hostname, port, password, username="root"):
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname, port, username, password)
-        return client
-
-    def _upload_file(self, filepath):
-        with SCPClient(self._client.get_transport()) as scp:  # type: ignore
-            scp.put(filepath, self._remote_path)
-
-    def _create_cmd(self, args):
-        cmd = f"/usr/local/cuda/bin/nvcc {self._remote_path} -O3 && ./a.out"
-        if not args:
-            return cmd
-        for arg in args:
-            cmd += f" {arg}"
-        return cmd
-
-    def _compile(self, args):
-        cmd = self._create_cmd(args)
-        print(colored(cmd, "green"))
-        self._execute_cmd(cmd)
-
-    def _execute_cmd(self, cmd):
-        _, stdout, stderr = self._client.exec_command(cmd)
-        output = stdout.read().decode()
-        print(output)
-        if error := stderr.read().decode():
-            print(error)
-
-
-def get_parser():
-    arg_parser = argparse.ArgumentParser(
-        prog="rcc",
-        description="Remote Cuda Runner",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    arg_parser.add_argument(
-        "path", type=str, help="Path to the cuda file you want to compile and run"
-    )
-    arg_parser.add_argument(
-        "--args", nargs="*", help="Arguments for running the compiled executable"
-    )
-    return arg_parser.parse_args()
-
-
-def download_from_url(url) -> str:
-    response = requests.get(url)
-    with tempfile.NamedTemporaryFile("w", suffix=".cu", delete=False) as f:
-        f.write(response.text)
-        return f.name
-
-
-if __name__ == "__main__":
-    args = get_parser()
-    path = args.path
-    if not path.endswith(".cu") or not path.startswith("http"):
-        raise ValueError("Not a CUDA file")
-    if path.startswith("http"):
-        path = download_from_url(path)
-    if not os.path.isfile(path):
-        raise NotImplementedError(
-            "Currently only support compiling and running a single CUDA file"
-        )
-    username, password = read_config()
-
-    autodl_provider = AutoDlProvider()
-    print(colored("Try to login into cloud (AutoDl)...", "green"))
-    autodl_provider.login(username, password)
-
-    gpus = autodl_provider.list_gpus()
-    if len(gpus) == 0:
-        raise ValueError("No gpu instances!")
-    # TODO: Support chosing gpus, and allow to set it to default.
-    gpu = gpus[0]
-    print(colored(f"Using GPU:{gpu.name}, Memory:{gpu.memory}", "light_yellow"))
-    try:
-        autodl_provider.start_gpu(gpu)
-        compiler = Compiler(gpu.host, gpu.port, gpu.passwd)
-        compiler.run(path, args.args)
-    finally:
-        autodl_provider.stop_gpu(gpu)
