@@ -11,10 +11,11 @@ To address this issue, I developed this tool, which allows users to submit their
 
 ## Usage
 
-To use this tool, you must create a `.env` file in current directory, and have following credentials:
-```
-PHONE="15012341234"
-PASSWORD="XXXXXX"
+To use this tool, you must have a `.rcc.toml` file in your home directory, and have following credentials:
+```toml
+[credentials.autodl]
+username = 15012341234
+password = "XXXXXXX"
 ```
 
 ```bash

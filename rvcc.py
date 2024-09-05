@@ -12,6 +12,7 @@ import hashlib
 from termcolor import colored
 from dataclasses import dataclass
 
+
 def _sha1_string(input_string: str) -> str:
     sha1_hash = hashlib.sha1()
     sha1_hash.update(input_string.encode("utf-8"))
@@ -25,12 +26,13 @@ def read_config():
     name = f"{home_dir}/.rcc.toml"
     try:
         config = toml.load(name)
-        phone = config['credentials']['autodl']['username']
-        password = config['credentials']['autodl']['password']
+        phone = config["credentials"]["autodl"]["username"]
+        password = config["credentials"]["autodl"]["password"]
         return phone, _sha1_string(password)
     except Exception as e:
         print(colored(f"Cannot read config: {e}", "red"))
         exit(1)
+
 
 @dataclass
 class GPU:
@@ -42,12 +44,14 @@ class GPU:
     memory: int
     status: str
 
+
 def _get_port_from_cmd(cmd):
     match = re.search(r"-p (\d+)", cmd)
     if match:
         port = match.group(1)
         return int(port)
     raise ValueError(f"Cannot get ssh port from command: {cmd}")
+
 
 def _get_gpu_info(uuid, auth) -> Tuple[str, int]:
     headers = {
@@ -61,7 +65,7 @@ def _get_gpu_info(uuid, auth) -> Tuple[str, int]:
         "sec-ch-ua-platform": '"Linux"',
     }
     params = {
-        "instance_uuid": f'{uuid}',
+        "instance_uuid": f"{uuid}",
     }
     response = requests.get(
         "https://www.autodl.com/api/v1/instance/snapshot",
@@ -72,8 +76,9 @@ def _get_gpu_info(uuid, auth) -> Tuple[str, int]:
         raise ValueError("Cannot login")
     gpu_type = response.json()["data"]["machine_info_snapshot"]["gpu_type"]
     name = gpu_type["name"]
-    memory = gpu_type['memory'] / (1024 ** 3)
+    memory = gpu_type["memory"] / (1024**3)
     return name, memory
+
 
 def _create_gpu_from_json(j, auth) -> GPU:
     uuid = j["uuid"]
@@ -102,6 +107,7 @@ class Provider:
     @abstractmethod
     def stop_gpu(self, gpu: GPU) -> bool:
         pass
+
 
 class AutoDlProvider(Provider):
     def __init__(self):
@@ -292,7 +298,7 @@ class Compiler:
 
     def _upload_file(self, filepath):
         remote_path = "/root/autodl-tmp/" + filepath
-        with SCPClient(self._client.get_transport()) as scp: #type: ignore
+        with SCPClient(self._client.get_transport()) as scp:  # type: ignore
             scp.put(filepath, remote_path)
 
     def _create_cmd(self, filepath, args):
@@ -316,6 +322,7 @@ class Compiler:
         if error := stderr.read().decode():
             print(error)
 
+
 def get_parser():
     arg_parser = argparse.ArgumentParser(
         prog="rcc",
@@ -329,6 +336,7 @@ def get_parser():
         "--args", nargs="*", help="Arguments for running the compiled executable"
     )
     return arg_parser.parse_args()
+
 
 if __name__ == "__main__":
     args = get_parser()
