@@ -6,6 +6,7 @@ import requests
 import argparse
 import time
 import paramiko
+import tempfile
 import re
 from scp import SCPClient, Tuple
 import hashlib
@@ -285,10 +286,11 @@ class AutoDlProvider(Provider):
 class Compiler:
     def __init__(self, hostname, port, password):
         self._client = self._create_ssh_client(hostname, port, password=password)
+        self._remote_path = "/root/autodl-tmp/run.cu"
 
     def run(self, filepath, args):
         self._upload_file(filepath)
-        self._compile(filepath, args)
+        self._compile(args)
 
     def _create_ssh_client(self, hostname, port, password, username="root"):
         client = paramiko.SSHClient()
@@ -297,21 +299,19 @@ class Compiler:
         return client
 
     def _upload_file(self, filepath):
-        remote_path = "/root/autodl-tmp/" + filepath
         with SCPClient(self._client.get_transport()) as scp:  # type: ignore
-            scp.put(filepath, remote_path)
+            scp.put(filepath, self._remote_path)
 
-    def _create_cmd(self, filepath, args):
-        remote_path = "/root/autodl-tmp/" + filepath
-        cmd = f"/usr/local/cuda/bin/nvcc {remote_path} && ./a.out"
+    def _create_cmd(self, args):
+        cmd = f"/usr/local/cuda/bin/nvcc {self._remote_path} -O3 && ./a.out"
         if not args:
             return cmd
         for arg in args:
             cmd += f" {arg}"
         return cmd
 
-    def _compile(self, filepath, args):
-        cmd = self._create_cmd(filepath, args)
+    def _compile(self, args):
+        cmd = self._create_cmd(args)
         print(colored(cmd, "green"))
         self._execute_cmd(cmd)
 
@@ -338,11 +338,20 @@ def get_parser():
     return arg_parser.parse_args()
 
 
+def download_from_url(url) -> str:
+    response = requests.get(url)
+    with tempfile.NamedTemporaryFile("w", suffix=".cu", delete=False) as f:
+        f.write(response.text)
+        return f.name
+
+
 if __name__ == "__main__":
     args = get_parser()
     path = args.path
-    if not path.endswith(".cu"):
+    if not path.endswith(".cu") or not path.startswith("http"):
         raise ValueError("Not a CUDA file")
+    if path.startswith("http"):
+        path = download_from_url(path)
     if not os.path.isfile(path):
         raise NotImplementedError(
             "Currently only support compiling and running a single CUDA file"
