@@ -12,8 +12,9 @@ Compile a single cuda file and execute it, return the results.
 6. Read the output.
 
 # TODO
-1. Support passing arguments?
 2. Support multiple files? like cmake?
 3. Better algorithms for server boot/shutdown?
 4. Support Chosing machine?
-5. Support logining completely via command line?
+* config file
+* package
+* docker image

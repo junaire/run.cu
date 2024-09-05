@@ -10,10 +10,12 @@ from dotenv import load_dotenv
 import hashlib
 from termcolor import colored
 
+
 def _sha1_string(input_string: str) -> str:
     sha1_hash = hashlib.sha1()
-    sha1_hash.update(input_string.encode('utf-8'))
+    sha1_hash.update(input_string.encode("utf-8"))
     return sha1_hash.hexdigest()
+
 
 load_dotenv()
 PHONE = os.getenv("PHONE")
@@ -25,6 +27,7 @@ if not PASSWORD:
     raise ValueError("Cannot find PASSWORD in .env")
 
 PASSWORD = _sha1_string(PASSWORD)
+
 
 def _get_port_from_cmd(cmd):
     match = re.search(r"-p (\d+)", cmd)
@@ -49,19 +52,23 @@ class Compiler:
 
     def _print_gpu_info(self, gpu):
         headers = {
-            'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
-            'AppVersion': 'v5.49.0',
-            'DNT': '1',
-            'sec-ch-ua-mobile': '?0',
-            'Authorization': f'{self._auth}',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-            'Referer': 'https://www.autodl.com/console/instance/list',
-            'sec-ch-ua-platform': '"Linux"',
+            "sec-ch-ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+            "AppVersion": "v5.49.0",
+            "DNT": "1",
+            "sec-ch-ua-mobile": "?0",
+            "Authorization": f"{self._auth}",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            "Referer": "https://www.autodl.com/console/instance/list",
+            "sec-ch-ua-platform": '"Linux"',
         }
         params = {
-            'instance_uuid': f'{gpu["uuid"]}',
+            "instance_uuid": f'{gpu["uuid"]}',
         }
-        response = requests.get('https://www.autodl.com/api/v1/instance/snapshot', params=params, headers=headers)
+        response = requests.get(
+            "https://www.autodl.com/api/v1/instance/snapshot",
+            params=params,
+            headers=headers,
+        )
         if response.status_code != 200:
             raise ValueError("Cannot login")
         gpu_type = response.json()["data"]["machine_info_snapshot"]["gpu_type"]
@@ -77,58 +84,62 @@ class Compiler:
     def _get_auth(self):
         print(colored("Try to login into cloud...", "green"))
         headers = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
-            'appversion': 'v5.49.0',
-            'authorization': 'null',
-            'content-type': 'application/json;charset=UTF-8',
-            'dnt': '1',
-            'origin': 'https://www.autodl.com',
-            'priority': 'u=1, i',
-            'referer': 'https://www.autodl.com/login',
-            'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
+            "appversion": "v5.49.0",
+            "authorization": "null",
+            "content-type": "application/json;charset=UTF-8",
+            "dnt": "1",
+            "origin": "https://www.autodl.com",
+            "priority": "u=1, i",
+            "referer": "https://www.autodl.com/login",
+            "sec-ch-ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
         }
 
         json_data = {
-            'phone': f'{PHONE}',
-            'password': f'{PASSWORD}',
-            'v_code': '',
-            'phone_area': '+86',
-            'picture_id': None,
+            "phone": f"{PHONE}",
+            "password": f"{PASSWORD}",
+            "v_code": "",
+            "phone_area": "+86",
+            "picture_id": None,
         }
-        response = requests.post('https://www.autodl.com/api/v1/new_login', headers=headers, json=json_data)
+        response = requests.post(
+            "https://www.autodl.com/api/v1/new_login", headers=headers, json=json_data
+        )
         if response.status_code != 200:
             raise ValueError("Cannot login")
         ticket = response.json()["data"]["ticket"]
 
         headers = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
-            'appversion': 'v5.49.0',
-            'authorization': 'null',
-            'content-type': 'application/json;charset=UTF-8',
-            'dnt': '1',
-            'origin': 'https://www.autodl.com',
-            'priority': 'u=1, i',
-            'referer': 'https://www.autodl.com/login',
-            'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
+            "appversion": "v5.49.0",
+            "authorization": "null",
+            "content-type": "application/json;charset=UTF-8",
+            "dnt": "1",
+            "origin": "https://www.autodl.com",
+            "priority": "u=1, i",
+            "referer": "https://www.autodl.com/login",
+            "sec-ch-ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
         }
         json_data = {
-            'ticket': f'{ticket}',
+            "ticket": f"{ticket}",
         }
-        response = requests.post('https://www.autodl.com/api/v1/passport', headers=headers, json=json_data)
+        response = requests.post(
+            "https://www.autodl.com/api/v1/passport", headers=headers, json=json_data
+        )
         if response.status_code != 200:
             raise ValueError("Cannot get auth token")
         return response.json()["data"]["token"]
@@ -274,7 +285,7 @@ class Compiler:
 
     def _create_cmd(self, filepath, args):
         remote_path = "/root/autodl-tmp/" + filepath
-        cmd =f"/usr/local/cuda/bin/nvcc {remote_path} && ./a.out"
+        cmd = f"/usr/local/cuda/bin/nvcc {remote_path} && ./a.out"
         if not args:
             return cmd
         for arg in args:
@@ -305,19 +316,30 @@ class Compiler:
 
 
 def get_parser():
-    arg_parser = argparse.ArgumentParser(prog="rcc", description="Remote Cuda Runner", formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
-    arg_parser.add_argument("path", type=str, help="Path to the cuda file you want to compile and run")
-    arg_parser.add_argument("--args", nargs='*', help="Arguments for running the compiled executable")
+    arg_parser = argparse.ArgumentParser(
+        prog="rcc",
+        description="Remote Cuda Runner",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    arg_parser.add_argument(
+        "path", type=str, help="Path to the cuda file you want to compile and run"
+    )
+    arg_parser.add_argument(
+        "--args", nargs="*", help="Arguments for running the compiled executable"
+    )
     return arg_parser.parse_args()
+
 
 if __name__ == "__main__":
 
-    args =get_parser()
+    args = get_parser()
     path = args.path
     if not path.endswith(".cu"):
         raise ValueError("Not a CUDA file")
     if not os.path.isfile(path):
-        raise NotImplementedError("Currently only support compiling and running a single CUDA file")
+        raise NotImplementedError(
+            "Currently only support compiling and running a single CUDA file"
+        )
 
     with Compiler() as compiler:
         compiler.run(path, args.args)
