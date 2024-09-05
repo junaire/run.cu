@@ -32,8 +32,8 @@ rcc test.cu
 # Pass arguments
 rcc a.cu --args 1 2 3
 
-# Pass flags to compilation process
-rcc gemm.cu -- -lcublas
+# Pass flags to compilation process, note you need put them in the last
+rcc gemm.cu --args 2048 1024 512 --flags -lcublas 
 ```
 
 [demo.webm](https://github.com/user-attachments/assets/b60b1d02-e36a-40a8-8045-0d145619f026)
