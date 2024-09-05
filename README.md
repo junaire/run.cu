@@ -23,3 +23,5 @@ python3 rvcc.py a.cu
 # Pass arguments
 python3 rvcc.py a.cu --args 1 2 3
 ```
+
+[demo.webm](https://github.com/user-attachments/assets/b60b1d02-e36a-40a8-8045-0d145619f026)
