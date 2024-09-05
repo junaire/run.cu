@@ -46,7 +46,7 @@ def get_parser():
         "--args", nargs="*", help="Arguments for running the compiled executable"
     )
     arg_parser.add_argument(
-        "flags",
+        "--flags",
         nargs=argparse.REMAINDER,  # Capture all remaining arguments as compile flags
         help="Additional flags for compilation",
     )

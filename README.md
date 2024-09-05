@@ -9,6 +9,14 @@ In the process of writing CUDA code, I often found my local GPU resources insuff
 
 To address this issue, I developed this tool, which allows users to submit their local CUDA files to the cloud for compilation and execution. The main advantage of this tool is that it spins up an instance only when needed, optimizing the pay-as-you-go model. By using this tool, users can efficiently run their CUDA programs on powerful remote GPUs without the financial burden of maintaining a cloud instance when it is not in use.
 
+## Installation
+
+```bash
+git clone https://github.com/junaire/run.cu
+cd run.cu
+pip install --user .
+```
+
 ## Usage
 
 To use this tool, you must have a `.rcc.toml` file in your home directory, and have following credentials:
@@ -19,10 +27,13 @@ password = "XXXXXXX"
 ```
 
 ```bash
-python3 rvcc.py a.cu
+rcc test.cu
 
 # Pass arguments
-python3 rvcc.py a.cu --args 1 2 3
+rcc a.cu --args 1 2 3
+
+# Pass flags to compilation process
+rcc gemm.cu -- -lcublas
 ```
 
 [demo.webm](https://github.com/user-attachments/assets/b60b1d02-e36a-40a8-8045-0d145619f026)
