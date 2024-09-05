@@ -1,5 +1,5 @@
 import os
-import sys
+import json
 import requests
 import argparse
 import time
@@ -39,12 +39,34 @@ class Compiler:
 
         self._auth = self._get_auth()
         self._gpu = self._get_gpu_info()
+        self._print_gpu_info(self._gpu)
         self._may_start_gpu(self._gpu)
         host = self._gpu["proxy_host"]
         password = self._gpu["root_password"]
         cmd = self._gpu["ssh_command"]
         port = _get_port_from_cmd(cmd)
         self._client = self._create_ssh_client(host, port, password)
+
+    def _print_gpu_info(self, gpu):
+        headers = {
+            'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+            'AppVersion': 'v5.49.0',
+            'DNT': '1',
+            'sec-ch-ua-mobile': '?0',
+            'Authorization': f'{self._auth}',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'Referer': 'https://www.autodl.com/console/instance/list',
+            'sec-ch-ua-platform': '"Linux"',
+        }
+        params = {
+            'instance_uuid': f'{gpu["uuid"]}',
+        }
+        response = requests.get('https://www.autodl.com/api/v1/instance/snapshot', params=params, headers=headers)
+        if response.status_code != 200:
+            raise ValueError("Cannot login")
+        gpu_type = response.json()["data"]["machine_info_snapshot"]["gpu_type"]
+        info = f"GPU: {gpu_type['name']} Memory: {gpu_type['memory'] / (1024 ** 3): .2f} GB"
+        print(colored(f"Using {info}", "light_yellow"))
 
     def _create_ssh_client(self, hostname, port, password, username="root"):
         client = paramiko.SSHClient()
@@ -262,6 +284,9 @@ class Compiler:
     def _compile(self, filepath, args):
         cmd = self._create_cmd(filepath, args)
         print(colored(cmd, "green"))
+        self._execute_cmd(cmd)
+
+    def _execute_cmd(self, cmd):
         _, stdout, stderr = self._client.exec_command(cmd)
         output = stdout.read().decode()
         print(output)
