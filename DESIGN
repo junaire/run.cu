@@ -14,5 +14,4 @@ Compile a single cuda file and execute it, return the results.
 # TODO
 * Support Chosing machine?
 * Better ui
-* package
 * docker image

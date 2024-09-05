@@ -1,5 +1,5 @@
 import os
-
+import time
 import toml
 import requests
 import argparse
@@ -70,6 +70,7 @@ def main():
 
     autodl_provider = AutoDlProvider()
     print(colored("Try to login into cloud (AutoDl)...", "green"))
+
     autodl_provider.login(username, password)
 
     gpus = autodl_provider.list_gpus()
@@ -79,11 +80,14 @@ def main():
     gpu = gpus[0]
     print(colored(f"Using GPU:{gpu.name}, Memory:{gpu.memory}", "light_yellow"))
     try:
+        t = time.time()
         autodl_provider.start_gpu(gpu)
         compiler = Compiler(gpu.host, gpu.port, gpu.passwd)
         compiler.run(path, args.args)
     finally:
         autodl_provider.stop_gpu(gpu)
+    elapsed = time.time() - t
+    print(colored(f"Consumed GPU Time: {elapsed:.2f}s", "light_blue"))
 
 
 if __name__ == "__main__":
