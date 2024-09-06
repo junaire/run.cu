@@ -83,7 +83,7 @@ def main():
         raise ValueError("No gpu instances!")
     # TODO: Support chosing gpus, and allow to set it to default.
     gpu = gpus[0]
-    print(colored(f"Using GPU:{gpu.name}, Memory:{gpu.memory}", "light_yellow"))
+    print(colored(f"Using GPU:{gpu.name}, Memory:{gpu.memory}GB", "light_yellow"))
     try:
         t = time.time()
         autodl_provider.start_gpu(gpu)
