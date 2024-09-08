@@ -26,14 +26,31 @@ username = 15012341234
 password = "XXXXXXX"
 ```
 
+You also need to create at least one instance [here](https://www.autodl.com/console/instance/list)
+
+
+### Syntax
+
+Compile and run a local CUDA file
+
 ```bash
-rcc test.cu
+rcc examples/sgemm.cu
+```
 
-# Pass arguments
-rcc a.cu --args 1 2 3
+Compile and run a remote CUDA file via url
 
-# Pass flags to compilation process, note you need put them in the last
-rcc gemm.cu --args 2048 1024 512 --flags -lcublas 
+```bash
+rcc https://raw.githubusercontent.com/junaire/run.cu/master/examples/sgemm.cu
+```
+
+Pass arguments to the executable
+```bash
+rcc examples/sgemm.cu --args 1 2 3
+```
+
+Pass flags to compilation process, note you need put them in the last
+```bash
+rcc examples/gemm.cu --args 2048 1024 512 --flags -lcublas
 ```
 
 [demo.webm](https://github.com/user-attachments/assets/b60b1d02-e36a-40a8-8045-0d145619f026)
